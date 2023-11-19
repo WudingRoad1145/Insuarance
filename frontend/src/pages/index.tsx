@@ -16,7 +16,183 @@ export default function Home() {
   
 	const contractAddress = "0x9a216460B793de4eF62F3556dADae37504ce525e";
 	const contractABI = [
-	  // ... Your Contract ABI here ...
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "user",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256",
+					"name": "amount",
+					"type": "uint256"
+				},
+				{
+					"indexed": false,
+					"internalType": "string",
+					"name": "city",
+					"type": "string"
+				}
+			],
+			"name": "Deposited",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": false,
+					"internalType": "string",
+					"name": "city",
+					"type": "string"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256",
+					"name": "amount",
+					"type": "uint256"
+				}
+			],
+			"name": "Donated",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "user",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256",
+					"name": "amount",
+					"type": "uint256"
+				}
+			],
+			"name": "Withdrawn",
+			"type": "event"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "city",
+					"type": "string"
+				}
+			],
+			"name": "deposit",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "city",
+					"type": "string"
+				}
+			],
+			"name": "distributeDonations",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "city",
+					"type": "string"
+				}
+			],
+			"name": "donate",
+			"outputs": [],
+			"stateMutability": "payable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "user",
+					"type": "address"
+				}
+			],
+			"name": "getBalance",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "city",
+					"type": "string"
+				}
+			],
+			"name": "getCityDonations",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "user",
+					"type": "address"
+				}
+			],
+			"name": "getUserCity",
+			"outputs": [
+				{
+					"internalType": "string",
+					"name": "",
+					"type": "string"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "amount",
+					"type": "uint256"
+				},
+				{
+					"internalType": "address",
+					"name": "targetAccount",
+					"type": "address"
+				}
+			],
+			"name": "withdraw",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
 	];
 	const [isNetworkSwitchHighlighted, setIsNetworkSwitchHighlighted] =
 		useState(false);
@@ -31,17 +207,19 @@ export default function Home() {
 	const connectWalletHandler = async () => {
 		if (window.ethereum) {
 		  try {
-			const newProvider = new ethers.providers.Web3Provider(window.ethereum);
-			const newSigner = newProvider.getSigner();
-			const newContract = new ethers.Contract(contractAddress, contractABI, newSigner);
-			setProvider(newProvider);
-			setSigner(newSigner);
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			// It will prompt user for account connections if it isnt connected
+			const signer = await provider.getSigner();
+			console.log("Account:", await signer.getAddress());
+			const newContract = new ethers.Contract(contractAddress, contractABI, signer);
+			setProvider(provider);
+			setSigner(signer);
 			setContract(newContract);
 			const address = await newSigner.getAddress();
 			setUserAddress(address);
 	
 			// Request access to the user's wallet
-			await newProvider.send("eth_requestAccounts", []);
+			await provider.send("eth_requestAccounts", []);
 		  } catch (err) {
 			console.error(err);
 		  }
@@ -64,6 +242,21 @@ export default function Home() {
 		  console.error(err);
 		}
 	  };
+
+		// Function to handle donating
+		const handleDonate = async () => {
+			if (!contract) return;
+		
+			try {
+				const transaction = await contract.donate(city, {
+				value: ethers.utils.parseEther(amount)
+				});
+				await transaction.wait();
+				console.log('Deposit successful');
+			} catch (err) {
+				console.error(err);
+			}
+			};
 	
 	  // Function to handle withdrawal
 	  const handleWithdraw = async () => {
@@ -77,7 +270,7 @@ export default function Home() {
 		  console.error(err);
 		}
 	  };
-	  
+
 	return (
 		<>
 			<Head>
@@ -139,9 +332,21 @@ export default function Home() {
 					<p className={styles.description}>Connected using WalletConnect</p>
                     <p className={styles.description}>Arx NFC Cards for off-line Signing and Spending</p>
                     <div className={styles.buttonGroup}>
-                        <button className={styles.button}>Enter Plan</button>
-                        <button className={styles.button}>DONATE</button>
-						<button className={styles.button}>File Claim</button>
+					<input
+						type="text"
+						value={city}
+						onChange={(e) => setCity(e.target.value)}
+						placeholder="Enter your city"
+					/>
+					<input
+						type="text"
+						value={amount}
+						onChange={(e) => setAmount(e.target.value)}
+						placeholder="Enter amount to deposit/withdraw"
+					/>
+					<button className={styles.button} onClick={handleDeposit}>Enter Plan</button>
+					<button className={styles.button} onClick={handleDonate}>DONATE</button>
+					<button className={styles.button} onClick={handleWithdraw}>File Claim</button>
                     </div>
                 </div>
             </div>
