@@ -4,10 +4,20 @@ import styles from "@/styles/Home.module.css";
 import { useState } from "react";
 import earthImage from 'src/earth.jpeg'; 
 import logo from 'src/logo.png';
-
+import { ethers } from 'ethers';
 
 export default function Home() {
-	
+	const [provider, setProvider] = useState(null);
+	const [signer, setSigner] = useState(null);
+	const [contract, setContract] = useState(null);
+	const [userAddress, setUserAddress] = useState(null);
+	const [city, setCity] = useState('');
+	const [amount, setAmount] = useState('');
+  
+	const contractAddress = "0x9a216460B793de4eF62F3556dADae37504ce525e";
+	const contractABI = [
+	  // ... Your Contract ABI here ...
+	];
 	const [isNetworkSwitchHighlighted, setIsNetworkSwitchHighlighted] =
 		useState(false);
 	const [isConnectHighlighted, setIsConnectHighlighted] = useState(false);
@@ -17,7 +27,57 @@ export default function Home() {
 		setIsConnectHighlighted(false);
 	};
 
+	// Function to connect to the user's wallet
+	const connectWalletHandler = async () => {
+		if (window.ethereum) {
+		  try {
+			const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+			const newSigner = newProvider.getSigner();
+			const newContract = new ethers.Contract(contractAddress, contractABI, newSigner);
+			setProvider(newProvider);
+			setSigner(newSigner);
+			setContract(newContract);
+			const address = await newSigner.getAddress();
+			setUserAddress(address);
 	
+			// Request access to the user's wallet
+			await newProvider.send("eth_requestAccounts", []);
+		  } catch (err) {
+			console.error(err);
+		  }
+		} else {
+		  console.error("Please install MetaMask!");
+		}
+	  };
+	
+	  // Function to handle depositing
+	  const handleDeposit = async () => {
+		if (!contract) return;
+	
+		try {
+		  const transaction = await contract.deposit(city, {
+			value: ethers.utils.parseEther(amount)
+		  });
+		  await transaction.wait();
+		  console.log('Deposit successful');
+		} catch (err) {
+		  console.error(err);
+		}
+	  };
+	
+	  // Function to handle withdrawal
+	  const handleWithdraw = async () => {
+		if (!contract) return;
+	
+		try {
+		  const transaction = await contract.withdraw(ethers.utils.parseEther(amount), userAddress);
+		  await transaction.wait();
+		  console.log('Withdrawal successful');
+		} catch (err) {
+		  console.error(err);
+		}
+	  };
+	  
 	return (
 		<>
 			<Head>
