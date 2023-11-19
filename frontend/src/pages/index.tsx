@@ -207,6 +207,7 @@ export default function Home() {
 	const connectWalletHandler = async () => {
 		if (window.ethereum) {
 		  try {
+			
 			const provider = new ethers.BrowserProvider(window.ethereum);
 			// It will prompt user for account connections if it isnt connected
 			const signer = await provider.getSigner();
